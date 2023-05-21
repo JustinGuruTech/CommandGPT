@@ -1,0 +1,6 @@
+# requirements.txt
+langchain
+openai
+huggingface_hub
+google-search-results
+google-api-python-client
