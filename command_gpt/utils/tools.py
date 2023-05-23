@@ -52,6 +52,8 @@ class SearchAndWriteTool:
         # Prepare the filename
         file_name = f"search_results/results_{safe_query}.txt"
         file_path = WORKSPACE_PATH / file_name
+        # Ensure the directory exists
+        file_path.parent.mkdir(parents=True, exist_ok=True)
         # Write the results to the file
         with open(file_path, "w") as file:
             file.write(results)
