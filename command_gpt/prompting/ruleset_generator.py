@@ -1,61 +1,186 @@
-# This file contains some methods for prompting the user and wrapping the input in another prompt that will generate a ruleset for CommandGPT.
+from __future__ import annotations
+from typing import List
 
-from langchain import ConversationChain, PromptTemplate
+from langchain.vectorstores import FAISS
+from langchain.docstore import InMemoryDocstore
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.chains.llm import LLMChain
+from langchain.chat_models.base import BaseChatModel
+from langchain.schema import (
+    AIMessage,
+    BaseMessage,
+    Document,
+    HumanMessage,
+    SystemMessage,
+)
+from langchain.vectorstores.base import VectorStoreRetriever
 
-from config import default_llm_open_ai
+import faiss
+
 from command_gpt.utils.console_logger import ConsoleLogger
+from command_gpt.prompting.ruleset_prompt import RulesetPrompt
 
-def prompt_for_ruleset(ruleset_that_will: str, user_prompt: str) -> str:
-    """
-    Builds a nesting doll of prompts that ultimately generates a ruleset for CommandGPT.
-    :param ruleset_that_will: Overall goal of rule set (research, event planning, law, etc.).
-    :param user_prompt: The input to the ruleset.
 
-    This is a nesting doll of prompts, generally structured like this:
-    1. Contextualize the LLM on CommandGPT in a generally applicable way.
-    2. Insert the request: "Generate an input summary that will instruct CommandGPT to {request}:"
-    3. Prompt the user for a specific topic, which will be used to generate the ruleset.
-    """
-    request_template = f"CommandGPT is an LLM driven application that operates in a continuous manner to achieve specified goals and fulfill a given purpose. CommandGPT uses commands to interface with it's virtual environment.\n\nThe goal of this project is to specify an initial rule set that keeps CommandGPT on track autonomously. Ideally, CommandGPT will improve it's strategy along the way without losing context on the information it has already gathered, but this can be challenging.\n\nIt's important that AutoGPT writes information into files and folders as it conducts research, but it needs to be specifically instructed to do so else it will default to internally processing.\n\nThe ruleset should: \n- be precise & descriptive, structured in a way that is easy to understand and act on for an LLM. \n- be phrased as \"You are xxx-gpt (filling in a descriptive & relevant name), an AI designed to...\" \n- should be followed by 5 Goals: These should break down the input into descriptive and well balanced topics.\nGenerate an input summary that will instruct CommandGPT to {ruleset_that_will}:\n\n{{topic}}\n\nEnsure that the output includes only a Name, Purpose, and 5 Goals that will act as instructions for CommandGPT. Ensure the output is formatted as \"You are xxxx-gpt, an AI designed to<purpose>\"\nGoals:\n1. <goal 1>\n2. <goal 2>\n3. <goal 3>\n4. <goal 4>\n5. <goal 5>\n\n"
+class RulesetGeneratorAgent:
+    """Driving class for Agent that generates a ruleset for CommandGPT"""
 
-    request_prompt_template = PromptTemplate(
-        input_variables=["topic"],
-        template=request_template
-    )
+    def __init__(
+        self,
+        request: str,
+        topic: str,
+        chain: LLMChain,
+        memory: VectorStoreRetriever = None,
+    ):
+        self.request = request
+        self.topic = topic
+        self.user_feedback: List[str] = []
+        self.generated_ruleset: str = None
+        self.memory = memory
+        self.full_message_history: List[BaseMessage] = []
+        self.next_action_count = 0
+        self.chain = chain
 
-    # Initialize conversation with LLM
-    conversation = ConversationChain(
-        llm=default_llm_open_ai,
-    )
+    @classmethod
+    def from_request_and_topic(
+        cls,
+        request: str,
+        topic: str,
+        llm: BaseChatModel,
+    ) -> RulesetGeneratorAgent:
+        """
+        Instantiate RulesetGeneratorAgent from request and topic
+        :param request: Inserted as "Generate an input summary that will instruct CommandGPT to {request}: "
+        :param topic: Inserted as "...instruct CommandGPT to {request}: {topic}"
+        """
+        prompt = RulesetPrompt(
+            ruleset_that_will=request,
+            topic=topic,
+            input_variables=["memory", "messages"],
+            token_counter=llm.get_num_tokens,
+        )
 
-    # Get research topic from user and format prompt
-    topic = ConsoleLogger.input(f"{user_prompt}: ")
-    formatted_prompt = request_prompt_template.format(
-        topic=topic
-    )
-    ConsoleLogger.log_input(formatted_prompt)
+        # Define your embedding model
+        embeddings_model = OpenAIEmbeddings()
+        # Initialize the vectorstore as empty
+        embedding_size = 1536
+        index = faiss.IndexFlatL2(embedding_size)
+        vectorstore = FAISS(embeddings_model.embed_query,
+                            index, InMemoryDocstore({}), {})
 
-    # Start the conversation
-    ConsoleLogger.set_response_stream_color() # Set color for response
-    response = conversation.predict(input=formatted_prompt)
-    return response
+        chain = LLMChain(llm=llm, prompt=prompt)
+        return cls(
+            request=request,
+            topic=topic,
+            chain=chain,
+            memory=vectorstore.as_retriever()
+        )
 
-def prompt_for_research_ruleset():
-    """
-    Uses prompt_for_ruleset() to prompt the user for a topic in order to generate a ruleset for CommandGPT that will conduct research on the topic.
-    """
-    # Get research topic from user and format prompt
-    return prompt_for_ruleset(
-        ruleset_that_will="conduct research and generate reports on",
-        user_prompt="Enter a research topic"
-    )
+    @classmethod
+    def from_request_prompt_for_topic(
+        cls,
+        request: str,
+        prompt_for_topic: str,
+        llm: BaseChatModel,
+    ) -> RulesetGeneratorAgent:
+        """
+        Get topic from user and instantiate RulesetGeneratorAgent from request and topic
+        :param request: Inserted as "Generate an input summary that will instruct CommandGPT to {request}: "
+        :param prompt_for_topic: Input prompt displayed to user for getting topic
+        """
 
-def prompt_for_event_planning_ruleset():
-    """
-    Uses prompt_for_ruleset() to prompt the user for an event in order to generate a ruleset for CommandGPT that will plan the event.
-    """
-    # Get event from user and format prompt
-    return prompt_for_ruleset(
-        ruleset_that_will="plan an event for",
-        user_prompt="Enter an event"
-    )
+        # Get topic from user
+        topic = ConsoleLogger.input(f"{prompt_for_topic}: ")
+
+        return RulesetGeneratorAgent.from_request_and_topic(
+            request=request,
+            topic=topic,
+            llm=llm
+        )
+
+    @classmethod
+    def from_empty_prompt_for_request_and_topic(
+        cls,
+        llm: BaseChatModel,
+    ) -> RulesetGeneratorAgent:
+        """
+        Get request & topic both from user and instantiate RulesetGeneratorAgent
+        """
+
+        # Get request from user
+        request = ConsoleLogger.input(
+            f"Generate an input summary that will instruct CommandGPT to (e.g. \"research and generate reports on \"): ")
+        topic = ConsoleLogger.input(f"Topic (e.g. \"Tardigrades\"): ")
+
+        return RulesetGeneratorAgent.from_request_and_topic(
+            request=request,
+            topic=topic,
+            llm=llm
+        )
+
+    def run(self) -> str:
+        """
+        Kicks off interaction loop with AI
+        """
+
+        # Interaction Loop
+        loop_count = 0
+        while True:
+            # user_input = ConsoleLogger.input("You: ")
+            loop_count += 1
+
+            messages = self.full_message_history
+            messages.append(
+                SystemMessage(
+                    content=f"Loop count: {loop_count}"
+                )
+            )
+
+            # Get user input beyond initial prompt
+            if (loop_count > 1):
+                user_input = ConsoleLogger.input(
+                    "Type (y) and hit enter if this ruleset is acceptable. Otherwise, provide feedback for a new one: ")
+                if user_input == "y":
+                    return self.generated_ruleset
+                else:
+                    self.user_feedback.append(user_input)
+
+            # Update prompt with user feedback if exists
+            if self.user_feedback:
+                print(f"\n\nUSER FEEDBACK: {self.user_feedback}\n\n")
+                feedback_length = len(self.user_feedback)
+                formatted_user_feedback = self.user_feedback[feedback_length - 1]
+                prompt = RulesetPrompt(
+                    ruleset_that_will=self.request,
+                    topic=self.topic,
+                    generated_ruleset=self.generated_ruleset,
+                    input_variables=["memory", "messages"],
+                    token_counter=self.chain.llm.get_num_tokens,
+                    user_feedback=formatted_user_feedback
+                )
+                self.chain.prompt = prompt
+
+            ConsoleLogger.log_input(
+                f"\n\nFULL PROMPT: {self.chain.prompt.construct_full_prompt()}\n\n")
+
+            # Set response color for console logger
+            ConsoleLogger.set_response_stream_color()
+            # Send message to AI, get response
+            self.generated_ruleset = self.chain.run(
+                messages=messages,
+                memory=self.memory,
+                user_input="Provide only the ruleset with no additional text before or after.",
+            )
+
+            # Update message history
+            self.full_message_history.append(HumanMessage(
+                content="Generate a new ruleset consistent with the original request and the user's feedback."
+            ))
+            self.full_message_history.append(
+                AIMessage(content=self.generated_ruleset))
+
+            self.memory.add_documents([Document(
+                page_content=self.generated_ruleset,
+                metadata={
+                    "ruleset_count": f"{loop_count}"
+                }
+            )])

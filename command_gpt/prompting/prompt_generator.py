@@ -1,9 +1,9 @@
 # This file contains the PromptGenerator class, which is used to generate the prompt string for Command-GPT and contains static helper methods for generating sections, numbered lists, and commands from other classes.
 
-import json
 from typing import List
 
 from langchain.tools.base import BaseTool
+from command_gpt.utils.command_parser import COMMAND_FORMAT
 
 
 class PromptGenerator:
@@ -14,25 +14,28 @@ class PromptGenerator:
 
     sections: List[str] = []
     tools: List[BaseTool] = []
+    ruleset: str = ""
 
-    def __init__(self) -> None:
-        self.command_format = {
-            "command": {"name": "command name", "args": {"arg name": "value"}}
-        }
-
-    #region STATIC GENERATOR METHODS
+    # region STATIC GENERATOR METHODS
 
     @staticmethod
     def _generate_command_string(tool: BaseTool) -> str:
         """
         Generates a properly formatted command string for the prompt.
         """
-        output = f"\"{tool.name}\": {tool.description}"
-        output += f", args json schema: {json.dumps(tool.args)}"
+        output = f"{tool.name}: {tool.description}, arguments: "
+
+        for arg_name, arg_details in tool.args.items():
+            arg_type = arg_details.get('type', 'string')  # default to string
+            arg_desc = arg_details.get('description', '')
+            output += f"--{arg_name} <{arg_type}> ({arg_desc}), "
+
+        # Remove the last comma and space
+        output = output[:-2]
         return output
-    
+
     @staticmethod
-    def _generate_commands_from_tools(tools: list[BaseTool]) -> list[str]:
+    def _generate_commands_from_tools(tools: List[BaseTool]) -> List[str]:
         """
         Generates list of string commands formatted for the prompt.
         """
@@ -48,7 +51,7 @@ class PromptGenerator:
         Returns section as a string with header & numbered list.
         """
         return f"{section_name}:\n{PromptGenerator._generate_numbered_list(items)}\n\n"
-    
+
     @staticmethod
     def _generate_numbered_list(items: list) -> str:
         """
@@ -62,40 +65,51 @@ class PromptGenerator:
         Returns section as a string with header & unordered list.
         """
         return f"{section_name}:\n{PromptGenerator._generate_unordered_list(items)}\n\n"
-    
+
     @staticmethod
     def _generate_unordered_list(items: list) -> str:
         """
         Returns unordered list as a string.
         """
         return "\n".join(f"- {item}" for item in items)
-    
-    #endregion
-    #region GENERATE PROMPT
-        
+
+    # endregion
+    # region GENERATE PROMPT
+
     def generate_prompt_string(self) -> str:
         """
         Generates the final prompt string from the sections & tools.
         """
         # Build initial prompt & append sections
-        prompt_string = "Guidelines\nYour decisions must always be made independently without seeking user assistance.\n\n"
+        prompt_string = "Guidelines\nYour decisions must always be made independently without seeking user input unless you are in a loop.\n\n"
         for section in self.sections:
             prompt_string += section
 
+        prompt_string += "Response:\n"
+        prompt_string += "Verbally processing your thoughts will help you make decisions and stay on track. Before the command line, write out your thinking process, including decision making, progress, and plan.\n\n"
+
+        # Add ruleset (You are xxx-GPT...)
+        prompt_string += f"{self.ruleset}\n\n"
+
         # Build commands section from tools
         formatted_commands = self._generate_commands_from_tools(self.tools)
-        prompt_string += self._generate_numbered_list_section("Commands", formatted_commands)        
-        
-        # Build response section
-        formatted_command_format = json.dumps(self.command_format, indent=4)
-        prompt_string += f"Every response you provide must end with a command line wrapped in code formatting represented with:\n```cmd> {formatted_command_format}```\nEnsure the command can be parsed by Python json.loads()."
+        commands_prompt_string = "Commands:\n"
+        commands_prompt_string += f"Commands can only be provided through the cli-gpt interface, which has strict rules:\n- Only one command per response\n- format as {COMMAND_FORMAT}\n- string args must be surrounded with double quotes\n"
+        commands_prompt_string += "In cli-gpt, only the following commands are available:\n"
+        commands_prompt_string += "```\n"
+        commands_prompt_string += "\n".join(formatted_commands)
+        commands_prompt_string += "\n```\n"
+        commands_prompt_string += "Again, only one command per response, and the format must be exactly correct.\n\n"
+
+        # Add commands section to prompt
+        prompt_string += commands_prompt_string
 
         return prompt_string
-    
-    #endregion
+
+    # endregion
 
 
-def get_prompt(tools: List[BaseTool]) -> str:
+def get_prompt(ruleset: str, tools: List[BaseTool]) -> str:
     """
     Defines sections & tools for prompt & generates the full prompt string with the above code
     """
@@ -105,52 +119,49 @@ def get_prompt(tools: List[BaseTool]) -> str:
 
     # Build sections
     sections = []
+    sections.append(PromptGenerator._generate_unordered_list_section(
+        "Identity",
+        [
+            "You are a monitored autonomous AI agent who can only interface with the outside world through a custom command line interface known as cli-gpt."
+        ]
+    ))
     sections.append(PromptGenerator._generate_numbered_list_section(
         "Prime Directives",
         [
-            "Use the command line format specified to interact with the environment",
-            "Work towards your goals, writing thoughts and findings meticulously to files.",
-            "Always provide accurate and sourced information.",
+            "Process information verbally, including reasoning, decision making, and planning in every response, written before the cli-gpt command line.",
+            f"Include a cli-gpt command line in every response, denoted with the custom formatting:\n {COMMAND_FORMAT} \n",
+            "Operate on your objectives. All necessary information is in your prompting and training data.",
+            "Work towards your goals, regularly writing content to markdown (.md) files.",
         ]
     ))
     sections.append(PromptGenerator._generate_numbered_list_section(
         "Constraints",
         [
-            "You have a 4000 word limit for short term memory. Save important information to files immediately.",
-            "File commands assume you are in the workspace directory. Don't get fancy.",
-            "No user assistance."
-            "Exclusively use the commands listed in double quotes e.g. \"command name\"",
+            "The only human input you receive is computer-generated.",
+            "The command line response format must be exactly correct."
         ]
     ))
     sections.append(PromptGenerator._generate_numbered_list_section(
         "Resources",
         [
-            "Long term memory management with vector store and retrieval.",
-            "File management.",
-            "Search capabilities."
-        ]
-    ))
-    sections.append(PromptGenerator._generate_numbered_list_section(
-        "Performance Metrics",
-        [
-            "Content relevance.",
-            "Content accuracy.",
-            "Amount of processing written to files."
+            "Long term memory through vector retrieval (think of similar things if you are stuck).",
+            "File management (list directory for context, write/read thoughts).",
+            "Search capabilities (source critical information)."
         ]
     ))
     sections.append(PromptGenerator._generate_unordered_list_section(
         "File Writing Guidelines",
         [
-            "Search results: \"results_{query}_{timestamp}\"",
-            "Reports: \"report_{topic}_{timestamp}\"",
-            "Misc notes & thoughts: \"notes_{topic}_{timestamp}\"",
-            "Drafts & works in progress: \"draft_{topic}_{timestamp}\"",
-            "In all cases, make sure to sanitize the topic or search query to remove any characters that aren't valid in a filename."
+            "Format output neatly into detailed markdown (.md) files for easy reading, making full use of markdown capabilities.",
+            "Do not write search results to files. This is automatically done, with results being saved to \"search_results/results_{query}\".",
+            "Reports should be detailed and include relevant information along with your thoughts.",
+            "In all cases, file commands assume you are in the root folder."
         ]
     ))
-    
+
     # Set sections & tools
     prompt_generator.sections = sections
+    prompt_generator.ruleset = ruleset
     prompt_generator.tools = tools
 
     # Generate the prompt string

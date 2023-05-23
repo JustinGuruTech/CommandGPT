@@ -25,17 +25,16 @@ class CommandGPTPrompt(BaseChatPromptTemplate, BaseModel):
     token_counter: Callable[[str], int]
     send_token_limit: int = 4196
 
+    # todo: probably move to command_gpt.py for more holistic logging
     # Always log full prompt on first run
     is_first_run = True
-    always_log_prompt = False
 
     def construct_full_prompt(self) -> str:
         # Construct full prompt
-        full_prompt = self.ruleset
-        full_prompt += f"\n\n{get_prompt(self.tools)}"
+        full_prompt = f"\n\n{get_prompt(self.ruleset, self.tools)}"
 
         # Log full prompt on first run
-        if self.is_first_run or self.always_log_prompt:
+        if self.is_first_run:
             ConsoleLogger.log_input(full_prompt)
             self.is_first_run = False
         return full_prompt
@@ -52,7 +51,8 @@ class CommandGPTPrompt(BaseChatPromptTemplate, BaseModel):
         # Get relevant memory & format into message
         memory: VectorStoreRetriever = kwargs["memory"]
         previous_messages = kwargs["messages"]
-        relevant_docs = memory.get_relevant_documents(str(previous_messages[-10:]))
+        relevant_docs = memory.get_relevant_documents(
+            str(previous_messages[-10:]))
         relevant_memory = [d.page_content for d in relevant_docs]
         relevant_memory_tokens = sum(
             [self.token_counter(doc) for doc in relevant_memory]
@@ -79,8 +79,8 @@ class CommandGPTPrompt(BaseChatPromptTemplate, BaseModel):
             used_tokens += message_tokens
 
         input_message = HumanMessage(content=kwargs["user_input"])
-        messages: List[BaseMessage] = [base_prompt, time_prompt, memory_message]
+        messages: List[BaseMessage] = [
+            base_prompt, time_prompt, memory_message]
         messages += historical_messages
         messages.append(input_message)
         return messages
-    

@@ -27,6 +27,7 @@ class CustomStreamCallback(StreamingStdOutCallbackHandler):
         """
         Resets stream color and prints an empty line on LLM stream end.
         """
+        print("\n")
         ConsoleLogger.set_default_stream_color()
 
     def on_agent_action(self, action: AgentAction, **kwargs: Any) -> Any:
@@ -44,4 +45,3 @@ class CustomStreamCallback(StreamingStdOutCallbackHandler):
         self, error: Union[Exception, KeyboardInterrupt], **kwargs: Any
     ) -> None:
         ConsoleLogger.log_error(f"Tool error: {error}")
-

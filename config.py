@@ -19,26 +19,26 @@ GOOGLE_CSE_ID = os.environ.get("GOOGLE_CSE_ID")
 
 WORKSPACE_DIR = "_gpt_workspace"
 
-#region Instantiate Language Models
+# region Instantiate Language Models
 # - Different models can be used for different results/use cases
 # - Temperature - 0-1: "randomness/diversity" of output (higher = more random)
 
 # Paid OpenAI model (https://openai.com/blog/openai-api)
 default_llm_open_ai = OpenAI(
-    temperature=0.3,
-    max_tokens=3000,
+    temperature=0.2,
+    max_tokens=2500,
     streaming=True,
-    callbacks=[CustomStreamCallback()] # Sets up output stream with colors
+    callbacks=[CustomStreamCallback()]  # Sets up output stream with colors
 )
 
 # Free HuggingFace model (https://huggingface.co/google/flan-t5-xl)
 default_llm_hugging_face = HuggingFaceHub(
-    repo_id="google/flan-t5-xl", 
+    repo_id="google/flan-t5-xl",
     model_kwargs={
         "temperature": 0.6,
         "max_length": 64
     },
-    callbacks=[CustomStreamCallback()] # Sets up output stream with colors
-) 
+    callbacks=[CustomStreamCallback()]  # Sets up output stream with colors
+)
 
-#endregion
+# endregion

@@ -23,7 +23,7 @@ class ConsoleLogger:
     # Controls the color of streamed output
     current_stream_color = COLOR_RESET
 
-    #region Logging Methods
+    # region Logging Methods
     # - These methods are used to control the color of output & input
 
     @staticmethod
@@ -40,15 +40,18 @@ class ConsoleLogger:
 
     @staticmethod
     def log_input(input_text):
-        print(f"{ConsoleLogger.COLOR_INPUT}INPUT: {input_text}{ConsoleLogger.COLOR_RESET}")
+        print(
+            f"{ConsoleLogger.COLOR_INPUT}INPUT: {input_text}{ConsoleLogger.COLOR_RESET}")
 
     @staticmethod
     def log_thinking():
-        print(f"\n{ConsoleLogger.COLOR_THINKING}Thinking...{ConsoleLogger.COLOR_RESET}\n")
+        print(
+            f"\n{ConsoleLogger.COLOR_THINKING}Thinking...{ConsoleLogger.COLOR_RESET}\n")
 
     @staticmethod
     def log_response(response_text):
-        print(f"{ConsoleLogger.COLOR_REPSONSE}RESPONSE: {response_text}{ConsoleLogger.COLOR_RESET}")
+        print(
+            f"{ConsoleLogger.COLOR_REPSONSE}RESPONSE: {response_text}{ConsoleLogger.COLOR_RESET}")
 
     @staticmethod
     def log_tool(tool_text):
@@ -56,15 +59,17 @@ class ConsoleLogger:
 
     @staticmethod
     def log_error(error_text):
-        print(f"{ConsoleLogger.COLOR_ERROR}ERROR: {error_text}{ConsoleLogger.COLOR_RESET}")
+        print(
+            f"{ConsoleLogger.COLOR_ERROR}ERROR: {error_text}{ConsoleLogger.COLOR_RESET}")
 
-    #endregion
-    #region Streamed output
+    # endregion
+    # region Streamed output
     # - These methods are used in custom_stream to control the color of streamed output, which is only available on the paid OpenAI API (as far as I know).
 
     @staticmethod
     def log_streaming(token: str):
-        sys.stdout.write(ConsoleLogger.current_stream_color + token + ConsoleLogger.COLOR_RESET)
+        sys.stdout.write(ConsoleLogger.current_stream_color +
+                         token + ConsoleLogger.COLOR_RESET)
         sys.stdout.flush()
 
     @staticmethod
@@ -79,4 +84,4 @@ class ConsoleLogger:
     def set_default_stream_color():
         ConsoleLogger.set_stream_color(ConsoleLogger.COLOR_RESET)
 
-    #endregion
+    # endregion

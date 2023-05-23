@@ -3,12 +3,12 @@
 ## Introduction
 CommandGPT is an autonomous LLM system designed to carry out tasks and generate output autonomously. It's designed to be simple yet flexible, with a built in mechanism for generating robust rulesets from unstructured requests.
 
-While the general flow is somewhat similar to [LangChain's AutoGPT](https://python.langchain.com/en/latest/use_cases/autonomous_agents/autogpt.html), the only response format enforced by this project is a command line represented at the end of responses with:
+This project uses [LangChain](https://github.com/hwchase17/langchain) to drive LLM interactions. The LLM is instructed to provide a command line at the end of it's response formatted as:
 ```
-```cmd> { "command_name": {...}}```
+<cmd> command_name --arg1 value1 --arg2 value2 </cmd>
 ```
 
-The system tends to stick to this format well after an initial few confused responses.
+This system is designed to use LangChain's [Tool](https://python.langchain.com/en/latest/modules/agents/tools/custom_tools.html) class for building the commands list. Tools can be added and removed painlessly, and the commands list will be handled gracefully in the prompt generator.
 
 ## Installation
 1. Set up API keys for [OpenAI](https://platform.openai.com/account/api-keys) & [Google Search](https://github.com/hwchase17/langchain/blob/master/docs/modules/agents/tools/examples/google_search.ipynb) 
@@ -20,22 +20,26 @@ The system tends to stick to this format well after an initial few confused resp
 ## Prompting
 There are 2 main prompting mechanisms in this project. 
 
-**To automate tasks other than research, you'll need to tweak ruleset_generator.py.**
-
 ### Ruleset Generator (ruleset_generator.py)
-This file contains methods that prompt the user for input and generate a ruleset on that input through the following process (more info on this process [here](https://medium.com/@Jstnwrds55/a-prompt-template-for-generating-autogpt-input-summaries-with-chatgpt-a98388059673)):
-1. Contexutalize a new LLM on how CommandGPT works through a prompt.
-2. Ask the LLM for "...an input summary that will instruct CommandGPT to {ruleset_that_will}: {topic} where `ruleset_that_will` can be tweaked in the code, and `topic` is provided as user input.
-3. Compose final prompt & send to LLM, which returns a detailed ruleset for use in the autonomous system.
+This file contains an Agent Class that has various constructors that assist in starting the ruleset generation chat. This process is similar to using AIPRM to generate input summaries (which is briefly covered [here](https://medium.com/@Jstnwrds55/a-prompt-template-for-generating-autogpt-input-summaries-with-chatgpt-a98388059673)):
 
-By default, `prompt_for_research_ruleset()` is used, which prompts the LLM for "... an input summary that will instruct CommandGPT to "conduct research and generate reports on": {user_input}"
+Currently, you'll need to tinker with `main.py` to use this beyond the boilerplate. There is ample in-code documentation.
+
+Generally, the ruleset generator works like this
+1. Contexutalize a new LLM on how CommandGPT works through a prompt.
+2. Through various constructors, allow user input for the {ruleset_that_will}, {topic}, or both
+3. Ask the LLM for "...an input summary that will instruct CommandGPT to {ruleset_that_will}: {topic}.
+4. Compose final prompt & send to LLM, which returns a detailed ruleset for use in the autonomous system.
+5. Interactive chat process allows feedback for improving prompt (such as removing search, focusing on certain aspects, epmhasizing file writing, etc.)
+
+By default, the request is for blog posts and the topic is user provided, so again, tinker with `main.py` to tweak this.
 
 ### prompt.py & prompt_generator.py
 These files compose the prompt provided to the autonomous system with the ruleset, instructions, memory, etc.
 
 `prompt_generator.py` handles composing the instructions prompt & contains static methods for building sections from other data models, for example:
 - `_generate_numbered_list_section("Prime Directives", [...])` -> "`Prime Directives \n\n1...\n2...`".
-- `_generate_commands_from_tools(list[BaseTool])` -> `list(str)` of formatted commands for the prompt.
+- `_generate_commands_from_tools(List[BaseTool])` -> `List[str]` of formatted commands for the prompt.
 
 `prompt.py` composes the instructions prompt into the full prompt (with context, memory,etc).
 
@@ -46,6 +50,6 @@ These files compose the prompt provided to the autonomous system with the rulese
 
 `command_parser.py` handles parsing the command from the response, which should end with ```cmd> {....}```
 
-`tools.py` provides an easy way to get bundled tools initialized & set up with these utils.
+`tools.py` has some custom tooling and provides an easy way to get bundled tools initialized & set up with these utils.
 
 `evaluate.py` currently only contains a method returning stats about the current output folder

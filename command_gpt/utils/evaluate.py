@@ -5,7 +5,8 @@ from config import WORKSPACE_DIR
 
 WORKSPACE_PATH = Path(WORKSPACE_DIR)
 
-def get_filesystem_representation(path = WORKSPACE_PATH, verbose=False):
+
+def get_filesystem_representation(path=WORKSPACE_PATH, verbose=False):
     """
     Return map of all files in a directory with the value being the file contents if verbose=True or a summary if verbose=False
     """
@@ -32,6 +33,7 @@ def get_filesystem_representation(path = WORKSPACE_PATH, verbose=False):
                 current_dir[file] = get_file_stats(file_path)
 
     return file_system
+
 
 def get_file_stats(file_path):
     file_size = os.path.getsize(file_path)
