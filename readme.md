@@ -1,14 +1,20 @@
 # CommandGPT
 
 ## Introduction
-CommandGPT is an autonomous LLM system designed to carry out tasks and generate output autonomously. It's designed to be simple yet flexible, with a built in mechanism for generating robust rulesets from unstructured requests.
+CommandGPT is an autonomous LLM system designed to carry out tasks and generate output autonomously. It's designed to be simple yet flexible, with a core loop that operates off an initial ruleset combined with a built-in mechanism for generating robust rulesets from user input.
 
-This project uses [LangChain](https://github.com/hwchase17/langchain) to drive LLM interactions. The LLM is instructed to provide a command line at the end of it's response formatted as:
+This project uses [LangChain](https://github.com/hwchase17/langchain) to drive LLM interactions. To get the primary Agent to use LangChain [tools](https://python.langchain.com/en/latest/modules/agents/tools/getting_started.html) consistently, it is prompted to provide commands using openining/closing tags and a command line format:
 ```
 <cmd> command_name --arg1 value1 --arg2 value2 </cmd>
 ```
 
-This system is designed to use LangChain's [Tool](https://python.langchain.com/en/latest/modules/agents/tools/custom_tools.html) class for building the commands list. Tools can be added and removed painlessly, and the commands list will be handled gracefully in the prompt generator.
+Because the system is designed using LangChain's [Tool](https://python.langchain.com/en/latest/modules/agents/tools/custom_tools.html) class for building the commands list, Tools can be added and removed painlessly, and the commands list will be handled gracefully in the prompt generator. Commands are mapped from Tools to the following format:
+```
+search: Gather search results from query (they will automatically be written to a file called 'results_{query}'), arguments: --tool_input <string> ()
+write_file: Write file to disk, arguments: --file_path <string> (name of file), --text <string> (text to write to file), --append <boolean> (Whether to append to an existing file.)
+...
+```
+which the AI is able to understand & use consistently.
 
 ## Installation
 1. Set up API keys for [OpenAI](https://platform.openai.com/account/api-keys) & [Google Search](https://github.com/hwchase17/langchain/blob/master/docs/modules/agents/tools/examples/google_search.ipynb) 
