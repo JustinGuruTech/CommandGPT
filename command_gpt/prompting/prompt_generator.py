@@ -86,7 +86,7 @@ class PromptGenerator:
             prompt_string += section
 
         prompt_string += "Response:\n"
-        prompt_string += "Verbally processing your thoughts will help you make decisions and stay on track. Before the command line, write out your thinking process, including decision making, progress, and plan.\n\n"
+        prompt_string += "You can provide tags to be parsed by the system and used for some semblance of \"state\". Only one of each tag is allowed per response. Before providing any tags, verbally process your thoughts, including reasoning, overall progress, and your current plan. After this summary, provide content in tags, the most important tag being the <cmd></cmd> tag which gives you access to the command line. Additionally, provide a <context></context> tag to capture the essence of what you are doing in the larger picture.\n\n"
 
         # Add ruleset (You are xxx-GPT...)
         prompt_string += f"{self.ruleset}\n\n"
@@ -99,7 +99,7 @@ class PromptGenerator:
         commands_prompt_string += "```\n"
         commands_prompt_string += "\n".join(formatted_commands)
         commands_prompt_string += "\n```\n"
-        commands_prompt_string += "Again, only one command per response, and the format must be exactly correct.\n\n"
+        commands_prompt_string += "Only one command can be parsed per response, and the format must be exactly correct.\n"
 
         # Add commands section to prompt
         prompt_string += commands_prompt_string

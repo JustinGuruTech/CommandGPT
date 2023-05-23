@@ -23,7 +23,7 @@ class CommandGPTPrompt(BaseChatPromptTemplate, BaseModel):
     ruleset: str
     tools: List[BaseTool]
     token_counter: Callable[[str], int]
-    send_token_limit: int = 4196
+    send_token_limit: int = 4100  # Lowered due to infrequent token limit errors
 
     # todo: probably move to command_gpt.py for more holistic logging
     # Always log full prompt on first run
@@ -31,11 +31,12 @@ class CommandGPTPrompt(BaseChatPromptTemplate, BaseModel):
 
     def construct_full_prompt(self) -> str:
         # Construct full prompt
-        full_prompt = f"\n\n{get_prompt(self.ruleset, self.tools)}"
+        full_prompt = get_prompt(self.ruleset, self.tools)
 
         # Log full prompt on first run
         if self.is_first_run:
-            ConsoleLogger.log_input(full_prompt)
+            ConsoleLogger.log(
+                f"\nFULL PROMPT:\n\n{full_prompt}", ConsoleLogger.COLOR_INPUT)
             self.is_first_run = False
         return full_prompt
 

@@ -121,7 +121,8 @@ class RulesetGeneratorAgent:
         """
         Kicks off interaction loop with AI
         """
-
+        # Note about ruleset generator
+        ConsoleLogger.log("\nNOTE: The ruleset generator is a work in progress. Providing feedback for refined rulesets is experimental; keep it concise for best results. Feedback is appreciated :)\n", color=ConsoleLogger.COLOR_MAGENTA)
         # Interaction Loop
         loop_count = 0
         while True:
@@ -146,21 +147,21 @@ class RulesetGeneratorAgent:
 
             # Update prompt with user feedback if exists
             if self.user_feedback:
-                print(f"\n\nUSER FEEDBACK: {self.user_feedback}\n\n")
-                feedback_length = len(self.user_feedback)
-                formatted_user_feedback = self.user_feedback[feedback_length - 1]
+                # todo: use user feedback in a more fine tuned way
                 prompt = RulesetPrompt(
                     ruleset_that_will=self.request,
                     topic=self.topic,
                     generated_ruleset=self.generated_ruleset,
                     input_variables=["memory", "messages"],
                     token_counter=self.chain.llm.get_num_tokens,
-                    user_feedback=formatted_user_feedback
+                    user_feedback=user_input
                 )
                 self.chain.prompt = prompt
 
-            ConsoleLogger.log_input(
-                f"\n\nFULL PROMPT: {self.chain.prompt.construct_full_prompt()}\n\n")
+            ConsoleLogger.log(
+                f"FULL PROMPT:\n\n{self.chain.prompt.construct_full_prompt()}\n",
+                color=ConsoleLogger.COLOR_INPUT
+            )
 
             # Set response color for console logger
             ConsoleLogger.set_response_stream_color()
@@ -168,7 +169,7 @@ class RulesetGeneratorAgent:
             self.generated_ruleset = self.chain.run(
                 messages=messages,
                 memory=self.memory,
-                user_input="Provide only the ruleset with no additional text before or after.",
+                user_input="You're doing great. Without any other niceties, provide a ruleset with no additional text before or after. Your message should start with \"You are xxx-GPT...\"",
             )
 
             # Update message history

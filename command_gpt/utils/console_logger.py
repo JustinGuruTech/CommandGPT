@@ -27,7 +27,8 @@ class ConsoleLogger:
     # - These methods are used to control the color of output & input
 
     @staticmethod
-    def log(message, color, prefix=None):
+    def log(message, color = COLOR_RESET, prefix=""):
+        ConsoleLogger.current_stream_color = ConsoleLogger.COLOR_RESET
         if prefix:
             print(f"{color}{prefix}: {message}{ConsoleLogger.COLOR_RESET}")
         else:
