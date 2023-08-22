@@ -4,7 +4,7 @@
 from dotenv import load_dotenv
 import os
 
-from langchain.llms import OpenAI, HuggingFaceHub
+from langchain.chat_models import ChatOpenAI
 
 from command_gpt.utils.custom_stream import CustomStreamCallback
 
@@ -24,20 +24,11 @@ WORKSPACE_DIR = "_gpt_workspace"
 # - Temperature - 0-1: "randomness/diversity" of output (higher = more random)
 
 # Paid OpenAI model (https://openai.com/blog/openai-api)
-default_llm_open_ai = OpenAI(
-    temperature=0.2,
+default_llm_open_ai = ChatOpenAI(
+    # model_name="gpt-4",
+    temperature=0.4,
     max_tokens=2500,
     streaming=True,
-    callbacks=[CustomStreamCallback()]  # Sets up output stream with colors
-)
-
-# Free HuggingFace model (https://huggingface.co/google/flan-t5-xl)
-default_llm_hugging_face = HuggingFaceHub(
-    repo_id="google/flan-t5-xl",
-    model_kwargs={
-        "temperature": 0.6,
-        "max_length": 64
-    },
     callbacks=[CustomStreamCallback()]  # Sets up output stream with colors
 )
 

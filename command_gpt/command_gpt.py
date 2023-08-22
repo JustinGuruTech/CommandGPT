@@ -17,7 +17,6 @@ from langchain.vectorstores.base import VectorStoreRetriever
 from command_gpt.utils.command_parser import GPTCommand, CommandGPTOutputParser, COMMAND_FORMAT
 from command_gpt.utils.console_logger import ConsoleLogger
 from command_gpt.prompting.prompt import CommandGPTPrompt
-from command_gpt.utils.evaluate import get_filesystem_representation
 
 
 class CommandGPT:
@@ -80,9 +79,8 @@ class CommandGPT:
             # todo: build in human input
             # user_input = ConsoleLogger.input("You: ")
 
-            # Get file system representation & append to messages
-            files = get_filesystem_representation(verbose=False)
-            system_message = f"Current loop count: {loop_count}\nFiles: {files} \nUse commands to achieve the defined goals. Do not ask for my input. Always provide commands."
+            # todo: pass contextual information to AI
+            system_message = f"Current loop count: {loop_count}\nUse commands to achieve the defined goals. Do not ask for my input. Always provide commands."
 
             # Set response color for console logger
             ConsoleLogger.set_response_stream_color()
@@ -117,8 +115,8 @@ class CommandGPT:
         """
         Executes a command if available in tools, otherwise returns an error message
         """
-        if command.name == "finish":
-            return command.args["response"]
+        # if command.name == "finish":
+            # return command.args["tool_input"]
         if command.name in tools_available:
             tool = tools_available[command.name]
             try:

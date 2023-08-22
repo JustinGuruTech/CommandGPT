@@ -13,10 +13,35 @@ from langchain.tools.human.tool import HumanInputRun
 
 from config import GOOGLE_API_KEY, GOOGLE_CSE_ID, WORKSPACE_DIR
 from command_gpt.utils.custom_stream import CustomStreamCallback
-from command_gpt.tooling.tools import SearchAndWriteTool, WriteFileToolNewlines
+from command_gpt.tooling.tools import HumanInputTool, SearchAndWriteTool, TestCustomTool, WriteFileToolNewlines
 
 WORKSPACE_PATH = Path(WORKSPACE_DIR)
 
+class CustomToolkit(ABC):
+    def __init__(self):
+        super().__init__()
+        
+        custom_tool = TestCustomTool()
+        #todo: fix finish tool
+        finish_tool = Tool(
+            name="finish",
+            func=lambda: None,
+            description="End the program.",
+            callbacks=[CustomStreamCallback()]
+        )
+
+        self.tools = {
+            'test_custom_tool': custom_tool,
+            'finish': finish_tool,
+            'human_input': HumanInputTool()
+        }
+
+    def get_toolkit(self) -> List[BaseTool]:
+        """
+        Return the list of tools for this toolkit.
+        """
+        return list(self.tools.values())
+        
 
 class BaseToolkit(ABC):
     """

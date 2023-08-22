@@ -1,5 +1,3 @@
-# This file contains the PromptGenerator class, which is used to generate the prompt string for Command-GPT and contains static helper methods for generating sections, numbered lists, and commands from other classes.
-
 from typing import List
 
 from langchain.tools.base import BaseTool
@@ -81,15 +79,12 @@ class PromptGenerator:
         Generates the final prompt string from the sections & tools.
         """
         # Build initial prompt & append sections
-        prompt_string = "Guidelines\nYour decisions must always be made independently without seeking user input unless you are in a loop.\n\n"
+        prompt_string = "Guidelines\n"
         for section in self.sections:
             prompt_string += section
 
         prompt_string += "Response:\n"
-        prompt_string += "You can provide tags to be parsed by the system and used for some semblance of \"state\". Only one of each tag is allowed per response. Before providing any tags, verbally process your thoughts, including reasoning, overall progress, and your current plan. After this summary, provide content in tags, the most important tag being the <cmd></cmd> tag which gives you access to the command line. Additionally, provide a <context></context> tag to capture the essence of what you are doing in the larger picture.\n\n"
-
-        # Add ruleset (You are xxx-GPT...)
-        prompt_string += f"{self.ruleset}\n\n"
+        prompt_string += "You can execute one command per response by using the required syntax, specified below. The command should always be at the very end of your response, and be preceeded with contextual information to guide progress.\n\n"
 
         # Build commands section from tools
         formatted_commands = self._generate_commands_from_tools(self.tools)
@@ -103,6 +98,9 @@ class PromptGenerator:
 
         # Add commands section to prompt
         prompt_string += commands_prompt_string
+        
+        # Add ruleset (You are xxx-GPT...)
+        prompt_string += f"\n{self.ruleset}\n\n"
 
         return prompt_string
 
@@ -119,43 +117,17 @@ def get_prompt(ruleset: str, tools: List[BaseTool]) -> str:
 
     # Build sections
     sections = []
-    sections.append(PromptGenerator._generate_unordered_list_section(
-        "Identity",
-        [
-            "You are a monitored autonomous AI agent who can only interface with the outside world through a custom command line interface known as cli-gpt."
-        ]
-    ))
     sections.append(PromptGenerator._generate_numbered_list_section(
         "Prime Directives",
         [
             "Process information verbally, including reasoning, decision making, and planning in every response, written before the cli-gpt command line.",
             f"Include a cli-gpt command line in every response, denoted with the custom formatting:\n {COMMAND_FORMAT} \n",
-            "Operate on your objectives. All necessary information is in your prompting and training data.",
-            "Work towards your goals, regularly writing content to markdown (.md) files.",
         ]
     ))
     sections.append(PromptGenerator._generate_numbered_list_section(
         "Constraints",
         [
-            "The only human input you receive is computer-generated.",
             "The command line response format must be exactly correct."
-        ]
-    ))
-    sections.append(PromptGenerator._generate_numbered_list_section(
-        "Resources",
-        [
-            "Long term memory through vector retrieval (think of similar things if you are stuck).",
-            "File management (list directory for context, write/read thoughts).",
-            "Search capabilities (source critical information)."
-        ]
-    ))
-    sections.append(PromptGenerator._generate_unordered_list_section(
-        "File Writing Guidelines",
-        [
-            "Format output neatly into detailed markdown (.md) files for easy reading, making full use of markdown capabilities.",
-            "Do not write search results to files. This is automatically done, with results being saved to \"search_results/results_{query}\".",
-            "Reports should be detailed and include relevant information along with your thoughts.",
-            "In all cases, file commands assume you are in the root folder."
         ]
     ))
 
