@@ -12,8 +12,8 @@ from langchain.schema import BaseMessage, HumanMessage, SystemMessage
 from langchain.tools.base import BaseTool
 from langchain.vectorstores.base import VectorStoreRetriever
 
-from command_gpt.prompting.prompt_generator import get_prompt
-from command_gpt.utils.console_logger import ConsoleLogger
+from CommandGPT.command_gpt.prompting.prompt_generator import get_prompt
+from CommandGPT.command_gpt.utils.console_logger import ConsoleLogger
 
 
 class CommandGPTPrompt(BaseChatPromptTemplate, BaseModel):

@@ -6,7 +6,7 @@ import os
 
 from langchain.chat_models import ChatOpenAI
 
-from command_gpt.utils.custom_stream import CustomStreamCallback
+from CommandGPT.command_gpt.utils.custom_stream import CustomStreamCallback
 
 load_dotenv()
 
@@ -26,8 +26,8 @@ WORKSPACE_DIR = "_gpt_workspace"
 # Paid OpenAI model (https://openai.com/blog/openai-api)
 default_llm_open_ai = ChatOpenAI(
     # model_name="gpt-4",
-    temperature=0.4,
-    max_tokens=2500,
+    temperature=0.3,
+    # max_tokens=2500,
     streaming=True,
     callbacks=[CustomStreamCallback()]  # Sets up output stream with colors
 )

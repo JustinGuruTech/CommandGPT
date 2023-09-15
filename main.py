@@ -7,7 +7,7 @@ from langchain.embeddings import OpenAIEmbeddings
 import faiss
 
 from config import default_llm_open_ai
-from command_gpt.tooling.toolkits import BaseToolkit, CustomToolkit, MemoryOnlyToolkit
+from command_gpt.tooling.toolkits import BaseToolkit, MemoryOnlyToolkit
 from command_gpt.command_gpt import CommandGPT
 
 
@@ -28,14 +28,13 @@ Good afternoon! Could you please test out your tooling? First, using the human_i
 """
 
 # Prepare toolkits
-test_toolkit = CustomToolkit()
 base_toolkit = BaseToolkit()  # Contains all tools
 no_web_toolkit = MemoryOnlyToolkit()  # Contains all tools except search/web
 
 # Initialize CommandGPT with tools, LLM, and memory
 command_gpt = CommandGPT.from_ruleset_and_tools(
     ruleset,
-    tools=test_toolkit.get_toolkit(),
+    tools=base_toolkit.get_toolkit(),
     llm=llm,
     memory=vectorstore.as_retriever()
 )

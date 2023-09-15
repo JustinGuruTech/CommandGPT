@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Union
 from langchain.schema import AgentAction, LLMResult
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
-from command_gpt.utils.console_logger import ConsoleLogger
+from CommandGPT.command_gpt.utils.console_logger import ConsoleLogger
 
 
 class CustomStreamCallback(StreamingStdOutCallbackHandler):

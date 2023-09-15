@@ -1,7 +1,7 @@
 from typing import List
 
 from langchain.tools.base import BaseTool
-from command_gpt.utils.command_parser import COMMAND_FORMAT
+from CommandGPT.command_gpt.utils.command_parser import COMMAND_FORMAT
 
 
 class PromptGenerator:
@@ -84,21 +84,21 @@ class PromptGenerator:
             prompt_string += section
 
         prompt_string += "Response:\n"
-        prompt_string += "You can execute one command per response by using the required syntax, specified below. The command should always be at the very end of your response, and be preceeded with contextual information to guide progress.\n\n"
+        prompt_string += "You can execute multiple commands per response by using the required syntax, specified below.\n"
 
         # Build commands section from tools
         formatted_commands = self._generate_commands_from_tools(self.tools)
         commands_prompt_string = "Commands:\n"
-        commands_prompt_string += f"Commands can only be provided through the cli-gpt interface, which has strict rules:\n- Only one command per response\n- format as {COMMAND_FORMAT}\n- string args must be surrounded with double quotes\n"
+        commands_prompt_string += f"Commands can only be provided through the cli-gpt interface, which has strict rules:\n- format as {COMMAND_FORMAT}\n- string args must be surrounded with double quotes\n"
         commands_prompt_string += "In cli-gpt, only the following commands are available:\n"
         commands_prompt_string += "```\n"
         commands_prompt_string += "\n".join(formatted_commands)
         commands_prompt_string += "\n```\n"
-        commands_prompt_string += "Only one command can be parsed per response, and the format must be exactly correct.\n"
+        commands_prompt_string += "Many commands can be parsed per response, and the format must be exactly correct.\n"
 
         # Add commands section to prompt
         prompt_string += commands_prompt_string
-        
+
         # Add ruleset (You are xxx-GPT...)
         prompt_string += f"\n{self.ruleset}\n\n"
 
@@ -120,8 +120,7 @@ def get_prompt(ruleset: str, tools: List[BaseTool]) -> str:
     sections.append(PromptGenerator._generate_numbered_list_section(
         "Prime Directives",
         [
-            "Process information verbally, including reasoning, decision making, and planning in every response, written before the cli-gpt command line.",
-            f"Include a cli-gpt command line in every response, denoted with the custom formatting:\n {COMMAND_FORMAT} \n",
+            f"Include a cli-gpt command line in every response, formatted as:\n {COMMAND_FORMAT} \n",
         ]
     ))
     sections.append(PromptGenerator._generate_numbered_list_section(

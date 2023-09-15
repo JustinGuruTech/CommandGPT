@@ -1,4 +1,3 @@
-import itertools
 from abc import abstractmethod
 import re
 import shlex
@@ -39,40 +38,51 @@ class CommandGPTOutputParser(BaseCommandGPTOutputParser):
     Custom Parser for CommandGPT that extracts the command string from the response and maps it to a GPTCommand.
     """
 
-    def parse(self, text: str) -> GPTCommand:
+    def parse(self, text: str) -> list[GPTCommand]:
+        commands = []
         try:
-            start_index = text.find(COMMAND_LINE_START)
-            end_index = text.find(
-                COMMAND_LINE_END, start_index + len(COMMAND_LINE_START))
+            start_indices = [m.start()
+                             for m in re.finditer(COMMAND_LINE_START, text)]
+            end_indices = [m.start()
+                           for m in re.finditer(COMMAND_LINE_END, text)]
 
-            if start_index == -1 or end_index == -1:
-                raise ValueError(
-                    f"Invalid command line format. Expected '{COMMAND_LINE_START}' and '{COMMAND_LINE_END}'")
+            if len(start_indices) != len(end_indices):
+                raise ValueError("Mismatched command start and end tags")
 
-            # Extract the command string, stripping any leading/trailing whitespace or newline characters
-            cmd_str = text[start_index +
-                           len(COMMAND_LINE_START):end_index].strip()
+            for start, end in zip(start_indices, end_indices):
+                cmd_str = text[start + len(COMMAND_LINE_START):end].strip()
+                if cmd_str.startswith('\n'):
+                    cmd_str = cmd_str[1:]
 
-            # If the command string starts with a newline, remove it
-            if cmd_str.startswith('\n'):
-                cmd_str = cmd_str[1:]
+                cmd_str_splitted = shlex.split(cmd_str)
 
-            # Use shlex.split to handle quoted arguments correctly
-            cmd_str_splitted = shlex.split(cmd_str)
+                if len(cmd_str_splitted) < 1:
+                    raise ValueError(
+                        "Command line format error: Missing command name")
 
-            if len(cmd_str_splitted) < 1:
-                raise ValueError(
-                    "Command line format error: Missing command name")
+                command_name = cmd_str_splitted.pop(0)
+                command_args = {}
 
-            command_name = cmd_str_splitted.pop(0)
-            command_args = dict(itertools.zip_longest(
-                *[iter(cmd_str_splitted)] * 2, fillvalue=""))
+                while cmd_str_splitted:
+                    arg = cmd_str_splitted.pop(0).lstrip('-')
+                    if cmd_str_splitted and not cmd_str_splitted[0].startswith('--'):
+                        value = cmd_str_splitted.pop(0)
+                    else:
+                        value = "true"
 
-            # Remove '--' from argument names
-            command_args = {arg.lstrip(
-                '-'): value for arg, value in command_args.items()}
+                    if value.lower() == "true":
+                        value = True
+                    elif value.lower() == "false":
+                        value = False
+                    elif value.isnumeric():
+                        value = int(value)
 
-            return GPTCommand(name=command_name, args=command_args)
+                    command_args[arg] = value
+
+                commands.append(GPTCommand(
+                    name=command_name, args=command_args))
+
         except Exception as e:
-            # If there is any error in parsing, return an error command
-            return GPTCommand(name="ERROR", args={"error": str(e)})
+            commands.append(GPTCommand(name="ERROR", args={"error": str(e)}))
+
+        return commands

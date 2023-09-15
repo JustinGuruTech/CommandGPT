@@ -17,27 +17,8 @@ from langchain.callbacks.manager import (
     CallbackManagerForToolRun,
 )
 
-from config import WORKSPACE_DIR
+from CommandGPT.config import WORKSPACE_DIR
 WORKSPACE_PATH = Path(WORKSPACE_DIR)
-
-class TestCustomTool(BaseTool):
-    name = "test_custom_tool"
-    description = "use this no matter what so we can test calling python code from your command syntax"
-    
-    def _run(
-        self,
-        message: str,
-    ) -> str:
-        """Use the tool."""
-        print(f'Running test_custom_tool with message: {message}')
-        return 'test_custom_tool finished running'
-
-    async def _arun(
-        self,
-        message: str,
-    ) -> str:
-        """Use the tool asynchronously."""
-        raise NotImplementedError("custom_search does not support async")
 
 
 class HumanInputTool(HumanInputRun):

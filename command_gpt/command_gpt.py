@@ -14,9 +14,9 @@ from langchain.schema import (
 from langchain.tools.base import BaseTool
 from langchain.vectorstores.base import VectorStoreRetriever
 
-from command_gpt.utils.command_parser import GPTCommand, CommandGPTOutputParser, COMMAND_FORMAT
-from command_gpt.utils.console_logger import ConsoleLogger
-from command_gpt.prompting.prompt import CommandGPTPrompt
+from CommandGPT.command_gpt.utils.command_parser import GPTCommand, CommandGPTOutputParser, COMMAND_FORMAT
+from CommandGPT.command_gpt.utils.console_logger import ConsoleLogger
+from CommandGPT.command_gpt.prompting.prompt import CommandGPTPrompt
 
 
 class CommandGPT:
@@ -66,21 +66,22 @@ class CommandGPT:
         Kicks off interaction loop with AI
         """
 
-        system_message = (
-            "Think out loud and always have a back up plan. Use commands to achieve the defined goals. Do not ask for my input. Always provide commands."
-        )
-
         # Interaction Loop
         loop_count = 0
         while True:
             loop_count += 1
             messages = self.full_message_history
 
-            # todo: build in human input
-            # user_input = ConsoleLogger.input("You: ")
-
             # todo: pass contextual information to AI
-            system_message = f"Current loop count: {loop_count}\nUse commands to achieve the defined goals. Do not ask for my input. Always provide commands."
+            system_message = f"Current loop count: {loop_count}\nUse commands to achieve the defined goals."
+            self.full_message_history.append(
+                SystemMessage(content=system_message))
+
+            user_input = input(
+                "Any additional commands? (Press Enter to continue): ")
+            if user_input.strip():  # If not empty
+                self.full_message_history.append(
+                    HumanMessage(content=user_input))
 
             # Set response color for console logger
             ConsoleLogger.set_response_stream_color()
@@ -98,25 +99,29 @@ class CommandGPT:
             self.full_message_history.append(
                 AIMessage(content=assistant_reply))
 
-            # Parse command and execute
+            # Parse commands and execute
             tools = {t.name: t for t in self.tools}
-            action = self.output_parser.parse(assistant_reply)
-            command_result = self.try_execute_command(tools, action)
+            # Now returns a list of commands
+            actions = self.output_parser.parse(assistant_reply)
 
-            memory_to_add = (
-                f"Assistant Reply: {assistant_reply} " f"\nResult: {command_result} "
-            )
+            for action in actions:
+                command_result = self.try_execute_command(tools, action)
 
-            self.memory.add_documents([Document(page_content=memory_to_add)])
-            self.full_message_history.append(
-                SystemMessage(content=command_result))
+                memory_to_add = (
+                    f"Assistant Reply: {assistant_reply} " f"\nResult: {command_result} "
+                )
+
+                self.memory.add_documents(
+                    [Document(page_content=memory_to_add)])
+                self.full_message_history.append(
+                    SystemMessage(content=command_result))
 
     def try_execute_command(self, tools_available: List[BaseTool], command: GPTCommand):
         """
         Executes a command if available in tools, otherwise returns an error message
         """
-        # if command.name == "finish":
-            # return command.args["tool_input"]
+        if command.name == "finish":
+            return command.args["tool_input"]
         if command.name in tools_available:
             tool = tools_available[command.name]
             try:
