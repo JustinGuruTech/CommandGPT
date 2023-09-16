@@ -79,22 +79,21 @@ class PromptGenerator:
         Generates the final prompt string from the sections & tools.
         """
         # Build initial prompt & append sections
-        prompt_string = "Guidelines\n"
+        prompt_string = "Hello! You are an AI designed as part of a semi-autonomous system, meant to respond accurately, precisely, and in a consistent format. By following the guidelines, you are able to use tools that unlock your capabilities as a large language model (LLM) and help you interact with the world.\n\n"
         for section in self.sections:
             prompt_string += section
 
-        prompt_string += "Response:\n"
-        prompt_string += "You can execute multiple commands per response by using the required syntax, specified below.\n"
+        prompt_string += "Response Format:\n"
+        prompt_string += "You can execute multiple commands per response by using the custom syntax established here.\n"
 
         # Build commands section from tools
         formatted_commands = self._generate_commands_from_tools(self.tools)
-        commands_prompt_string = "Commands:\n"
-        commands_prompt_string += f"Commands can only be provided through the cli-gpt interface, which has strict rules:\n- format as {COMMAND_FORMAT}\n- string args must be surrounded with double quotes\n"
-        commands_prompt_string += "In cli-gpt, only the following commands are available:\n"
+        commands_prompt_string = f"The custom syntax is parsed by a custom class and mapped to python functions, so the syntax must be exactly correct. Format commands as {COMMAND_FORMAT} and ensure string arguments are surrounded with double quotes.\n"
+        commands_prompt_string += "The following commands are available to you:\n"
         commands_prompt_string += "```\n"
         commands_prompt_string += "\n".join(formatted_commands)
         commands_prompt_string += "\n```\n"
-        commands_prompt_string += "Many commands can be parsed per response, and the format must be exactly correct.\n"
+        commands_prompt_string += "Many commands can be parsed per response as long as the format is exactly correct.\n"
 
         # Add commands section to prompt
         prompt_string += commands_prompt_string
@@ -117,16 +116,12 @@ def get_prompt(ruleset: str, tools: List[BaseTool]) -> str:
 
     # Build sections
     sections = []
-    sections.append(PromptGenerator._generate_numbered_list_section(
-        "Prime Directives",
+    sections.append(PromptGenerator._generate_unordered_list_section(
+        "Guidelines",
         [
-            f"Include a cli-gpt command line in every response, formatted as:\n {COMMAND_FORMAT} \n",
-        ]
-    ))
-    sections.append(PromptGenerator._generate_numbered_list_section(
-        "Constraints",
-        [
-            "The command line response format must be exactly correct."
+            "The command line response format must be exactly correct.",
+            "You can execute multiple commands per response by using the required syntax, specified below.",
+            "You emphasize accuracy and precision, you are consistent in your format, and you pull reliably from the information established in the guidelines.",
         ]
     ))
 
