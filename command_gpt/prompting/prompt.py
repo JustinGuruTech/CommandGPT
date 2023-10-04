@@ -16,7 +16,7 @@ from CommandGPT.command_gpt.prompting.prompt_generator import get_prompt
 from CommandGPT.command_gpt.utils.console_logger import ConsoleLogger
 
 
-class CommandGPTPrompt(BaseChatPromptTemplate, BaseModel):
+class CommandGPTPrompt(BaseChatPromptTemplate):
     """
     Prompt template for Command-GPT with base prompt, time, memory, and historical messages. Gets full prompt from prompt_generator.py.
     """
@@ -50,25 +50,25 @@ class CommandGPTPrompt(BaseChatPromptTemplate, BaseModel):
         )
 
         # Get relevant memory & format into message
-        memory: VectorStoreRetriever = kwargs["memory"]
+        # memory: VectorStoreRetriever = kwargs["memory"]
         previous_messages = kwargs["messages"]
-        relevant_docs = memory.get_relevant_documents(
-            str(previous_messages[-10:]))
-        relevant_memory = [d.page_content for d in relevant_docs]
-        relevant_memory_tokens = sum(
-            [self.token_counter(doc) for doc in relevant_memory]
-        )
-        while used_tokens + relevant_memory_tokens > 2500:
-            relevant_memory = relevant_memory[:-1]
-            relevant_memory_tokens = sum(
-                [self.token_counter(doc) for doc in relevant_memory]
-            )
-        content_format = (
-            f"This reminds you of these events "
-            f"from your past:\n{relevant_memory}\n\n"
-        )
-        memory_message = SystemMessage(content=content_format)
-        used_tokens += self.token_counter(memory_message.content)
+        # relevant_docs = memory.get_relevant_documents(
+            # str(previous_messages[-10:]))
+        # relevant_memory = [d.page_content for d in relevant_docs]
+        # relevant_memory_tokens = sum(
+            # [self.token_counter(doc) for doc in relevant_memory]
+        # )
+        # while used_tokens + relevant_memory_tokens > 2500:
+            # relevant_memory = relevant_memory[:-1]
+            # relevant_memory_tokens = sum(
+                # [self.token_counter(doc) for doc in relevant_memory]
+            # )
+        # content_format = (
+            # f"This reminds you of these events "
+            # f"from your past:\n{relevant_memory}\n\n"
+        # )
+        # memory_message = SystemMessage(content=content_format)
+        # used_tokens += self.token_counter(memory_message.content)
 
         # Append historical messages if there is space
         historical_messages: List[BaseMessage] = []
@@ -81,7 +81,11 @@ class CommandGPTPrompt(BaseChatPromptTemplate, BaseModel):
 
         input_message = HumanMessage(content=kwargs["user_input"])
         messages: List[BaseMessage] = [
-            base_prompt, time_prompt, memory_message]
-        messages += historical_messages
+            base_prompt, time_prompt
+        ]
+        
+        # messages: List[BaseMessage] = [
+        #     base_prompt, time_prompt, memory_message]
+        # messages += historical_messages
         messages.append(input_message)
         return messages

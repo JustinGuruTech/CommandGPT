@@ -8,7 +8,7 @@ from langchain.schema import BaseOutputParser
 # Command response format
 COMMAND_LINE_START = "<cmd>"
 COMMAND_LINE_END = "</cmd>"
-COMMAND_FORMAT = f"{COMMAND_LINE_START}command_name --arg1 value1 --arg2 value2{COMMAND_LINE_END}"
+COMMAND_FORMAT = f"{COMMAND_LINE_START}command_name --arg_string \"string_value\" --arg_int 2{COMMAND_LINE_END}"
 
 
 class GPTCommand(NamedTuple):

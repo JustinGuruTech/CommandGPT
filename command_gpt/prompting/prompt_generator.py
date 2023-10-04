@@ -79,21 +79,28 @@ class PromptGenerator:
         Generates the final prompt string from the sections & tools.
         """
         # Build initial prompt & append sections
-        prompt_string = "Hello! You are an AI designed as part of a semi-autonomous system, meant to respond accurately, precisely, and in a consistent format. By following the guidelines, you are able to use tools that unlock your capabilities as a large language model (LLM) and help you interact with the world.\n\n"
-        for section in self.sections:
-            prompt_string += section
+        prompt_string = "Hello! You are a proficient writer and analyst operating as part of an autonomous chain, meant to respond accurately, precisely, and in a consistent format. By following the guidelines, you are granted access to tools that unlock your capabilities as a large language model (LLM).\n\n"
+            
+        guidelines = PromptGenerator._generate_unordered_list_section(
+            "Guidelines",
+            [
+                "You emphasize accuracy and precision, you are consistent in your format, and you pull reliably from the source information provided without hallucinating or extrapolating too far.",
+                "Commands must be provided using the specified custom syntax to be parsed.",
+                "You can execute multiple commands per response using the custom syntax specified below.",
+            ]
+        )
+        sections = [guidelines]
 
         prompt_string += "Response Format:\n"
-        prompt_string += "You can execute multiple commands per response by using the custom syntax established here.\n"
+        prompt_string += "You can provide commands in your output using custom syntax; these commands are then parsed and mapped to Python code. You should encapsulate as much of your response in commands as possible to optimize information flow.\n"
 
         # Build commands section from tools
         formatted_commands = self._generate_commands_from_tools(self.tools)
-        commands_prompt_string = f"The custom syntax is parsed by a custom class and mapped to python functions, so the syntax must be exactly correct. Format commands as {COMMAND_FORMAT} and ensure string arguments are surrounded with double quotes.\n"
-        commands_prompt_string += "The following commands are available to you:\n"
-        commands_prompt_string += "```\n"
-        commands_prompt_string += "\n".join(formatted_commands)
-        commands_prompt_string += "\n```\n"
-        commands_prompt_string += "Many commands can be parsed per response as long as the format is exactly correct.\n"
+        commands_prompt_string = f"\nThe custom syntax is parsed by a custom class and mapped to python functions, so the syntax must be exactly correct, formatted as as:\n{COMMAND_FORMAT}\nEnsure string arguments are surrounded with double quotes."
+        commands_prompt_string += "\n\nAvailable Commands:\n"
+        commands_prompt_string += "\n\"\"\"\n"
+        commands_prompt_string += "\n".join(formatted_commands) # Add commands
+        commands_prompt_string += "\n\"\"\"\n"
 
         # Add commands section to prompt
         prompt_string += commands_prompt_string
@@ -114,19 +121,6 @@ def get_prompt(ruleset: str, tools: List[BaseTool]) -> str:
     # Initialize the PromptGenerator object
     prompt_generator = PromptGenerator()
 
-    # Build sections
-    sections = []
-    sections.append(PromptGenerator._generate_unordered_list_section(
-        "Guidelines",
-        [
-            "The command line response format must be exactly correct.",
-            "You can execute multiple commands per response by using the required syntax, specified below.",
-            "You emphasize accuracy and precision, you are consistent in your format, and you pull reliably from the information established in the guidelines.",
-        ]
-    ))
-
-    # Set sections & tools
-    prompt_generator.sections = sections
     prompt_generator.ruleset = ruleset
     prompt_generator.tools = tools
 
